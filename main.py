@@ -6,11 +6,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import uvicorn
+import os
 
 app = FastAPI(
     title="YouTube Transcript API",
     description="Extract video info and transcripts from YouTube videos",
-    version="1.0.1"
+    version="1.0.2"
 )
 
 class VideoResponse(BaseModel):
@@ -23,12 +24,17 @@ class VideoResponse(BaseModel):
 
 def get_video_info_and_transcript(video_id: str):
     """Extract video info + English transcript if available"""
+
+    # Always try to load cookies.txt (if it exists in project root)
+    cookies_file = "cookies.txt"
     ydl_opts = {
         "writesubtitles": True,
         "writeautomaticsub": True,
         "subtitleslangs": ["en"],
-        "skip_download": True
+        "skip_download": True,
     }
+    if os.path.exists(cookies_file):
+        ydl_opts["cookiefile"] = cookies_file
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -135,7 +141,6 @@ def get_video_info_and_transcript(video_id: str):
 
 @app.get("/")
 async def root():
-    """Landing page info"""
     return {
         "message": "YouTube Transcript API is running 🚀",
         "endpoints": {
@@ -148,7 +153,6 @@ async def root():
 
 @app.get("/transcript/{video_id}", response_model=VideoResponse)
 async def transcript(video_id: str):
-    """Return transcript for given YouTube video ID"""
     if not video_id or len(video_id) != 11:
         raise HTTPException(status_code=400, detail="Invalid video ID (must be 11 characters)")
     return VideoResponse(**get_video_info_and_transcript(video_id))
@@ -160,4 +164,5 @@ async def health_check():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
