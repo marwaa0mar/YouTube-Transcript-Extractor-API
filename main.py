@@ -205,7 +205,7 @@ def get_video_info_and_transcript(video_id: str):
                 }
         else:
             return {
-                "video_url": f"<a href='{video_url}' target='_blank'>{video_url}</a>",
+                "video_url": f"https://www.youtube.com/watch?v={video_id}",
                 "video_name": "Error",
                 "transcript": "",
                 "success": False,
