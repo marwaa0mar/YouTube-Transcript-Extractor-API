@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 import uvicorn
 import os
+import time
 
 app = FastAPI(
     title="YouTube Transcript API",
@@ -32,9 +33,24 @@ def get_video_info_and_transcript(video_id: str):
         "writeautomaticsub": True,
         "subtitleslangs": ["en"],
         "skip_download": True,
+        # Add user-agent to appear more like a real browser
+        "http_headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Accept-Encoding": "gzip,deflate",
+            "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.7",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+        }
     }
+    
     if os.path.exists(cookies_file):
         ydl_opts["cookiefile"] = cookies_file
+        print(f"Using cookies file: {cookies_file}")
+    else:
+        print("No cookies file found, proceeding without authentication")
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -130,13 +146,33 @@ def get_video_info_and_transcript(video_id: str):
             }
 
     except Exception as e:
-        return {
-            "video_url": f"https://www.youtube.com/watch?v={video_id}",
-            "video_name": "Error",
-            "transcript": "",
-            "success": False,
-            "message": f"Exception: {str(e)}"
-        }
+        error_msg = str(e)
+        
+        # Check if it's an authentication error
+        if "Sign in to confirm you're not a bot" in error_msg:
+            return {
+                "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                "video_name": "Authentication Required",
+                "transcript": "",
+                "success": False,
+                "message": "YouTube requires authentication. Please update your cookies.txt file with fresh cookies from your browser."
+            }
+        elif "cookies" in error_msg.lower():
+            return {
+                "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                "video_name": "Cookie Error",
+                "transcript": "",
+                "success": False,
+                "message": "Cookie authentication failed. Please check your cookies.txt file format and ensure cookies are not expired."
+            }
+        else:
+            return {
+                "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                "video_name": "Error",
+                "transcript": "",
+                "success": False,
+                "message": f"Exception: {error_msg}"
+            }
 
 
 @app.get("/")
@@ -145,9 +181,12 @@ async def root():
         "message": "YouTube Transcript API is running 🚀",
         "endpoints": {
             "/transcript/{video_id}": "Get transcript for a YouTube video",
-            "/health": "Health check"
+            "/health": "Health check",
+            "/auth-status": "Check cookie authentication status",
+            "/test-youtube": "Test YouTube connectivity with current cookies"
         },
-        "example": "/transcript/dQw4w9WgXcQ"
+        "example": "/transcript/dQw4w9WgXcQ",
+        "note": "If you get authentication errors, use /auth-status to check cookies and /test-youtube to test connectivity"
     }
 
 
@@ -161,6 +200,77 @@ async def transcript(video_id: str):
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "message": "Healthy"}
+
+
+@app.get("/auth-status")
+async def auth_status():
+    """Check authentication status and provide guidance"""
+    cookies_file = "cookies.txt"
+    if os.path.exists(cookies_file):
+        try:
+            with open(cookies_file, 'r') as f:
+                content = f.read()
+                lines = content.strip().split('\n')
+                cookie_count = len([line for line in lines if line.strip() and not line.startswith('#')])
+                
+                # Check if cookies are expired (basic check)
+                expired_count = 0
+                current_time = int(time.time())
+                for line in lines:
+                    if line.strip() and not line.startswith('#'):
+                        parts = line.split('\t')
+                        if len(parts) >= 5:
+                            try:
+                                expiry = int(parts[4])
+                                if expiry > 0 and expiry < current_time:
+                                    expired_count += 1
+                            except ValueError:
+                                pass
+                
+                return {
+                    "cookies_file_exists": True,
+                    "total_cookies": cookie_count,
+                    "expired_cookies": expired_count,
+                    "status": "expired" if expired_count > 0 else "valid",
+                    "message": f"Found {cookie_count} cookies, {expired_count} expired" if expired_count > 0 else f"Found {cookie_count} valid cookies"
+                }
+        except Exception as e:
+            return {
+                "cookies_file_exists": True,
+                "error": str(e),
+                "status": "error",
+                "message": "Error reading cookies file"
+            }
+    else:
+        return {
+            "cookies_file_exists": False,
+            "status": "missing",
+            "message": "No cookies.txt file found. Please create one with fresh YouTube cookies."
+        }
+
+
+@app.get("/test-youtube")
+async def test_youtube():
+    """Test YouTube connectivity with current cookies"""
+    try:
+        # Test with a simple video that should have captions
+        test_video_id = "dQw4w9WgXcQ"  # Rick Roll - should have captions
+        result = get_video_info_and_transcript(test_video_id)
+        
+        return {
+            "test_video_id": test_video_id,
+            "test_result": result,
+            "cookies_working": result["success"],
+            "message": "YouTube connectivity test completed"
+        }
+    except Exception as e:
+        return {
+            "test_video_id": "dQw4w9WgXcQ",
+            "test_result": None,
+            "cookies_working": False,
+            "error": str(e),
+            "message": "YouTube connectivity test failed"
+        }
 
 
 if __name__ == "__main__":
