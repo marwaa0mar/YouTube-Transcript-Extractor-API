@@ -216,7 +216,7 @@ def get_video_info_and_transcript(video_id: str):
 @app.get("/")
 async def root():
     return {
-        "message": "YouTube Transcript API is running",
+        "message": "YouTube Transcript API is running 🚀",
         "endpoints": {
             "/transcript/{video_id}": "Get transcript for a YouTube video",
             "/video-info/{video_id}": "Get video information without requiring captions",
