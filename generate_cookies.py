@@ -23,7 +23,7 @@ def generate_cookies():
     
     print("✅ yt-dlp found")
     print("\n📋 Available browsers:")
-    print("1. Chrome")
+    print("1. Chrome (may need to be closed)")
     print("2. Firefox")
     print("3. Edge")
     print("4. Safari")
@@ -42,6 +42,16 @@ def generate_cookies():
         return False
     
     browser = browser_map[browser_choice]
+    
+    if browser == "chrome":
+        print("\n⚠️  IMPORTANT: Chrome may need to be completely closed!")
+        print("   If you get permission errors, close all Chrome windows and try again.")
+        print("   Alternative: Use Firefox or Edge instead.")
+        
+        proceed = input("\nContinue with Chrome? (y/n): ").strip().lower()
+        if proceed != 'y':
+            print("Try Firefox or Edge instead!")
+            return False
     
     print(f"\n🔄 Extracting cookies from {browser}...")
     print("⚠️  Make sure you're logged into YouTube in your browser!")
@@ -77,6 +87,17 @@ def generate_cookies():
         else:
             print("❌ Failed to extract cookies")
             print(f"Error: {result.stderr}")
+            
+            # Check for specific Chrome permission error
+            if "Permission denied" in result.stderr and browser == "chrome":
+                print("\n🔧 Chrome Permission Error Detected!")
+                print("This happens when Chrome is running and locks its cookie database.")
+                print("\nSolutions:")
+                print("1. Close ALL Chrome windows completely")
+                print("2. Check Task Manager for remaining Chrome processes")
+                print("3. Try again after closing Chrome")
+                print("4. Or use Firefox/Edge instead")
+            
             return False
             
     except Exception as e:
