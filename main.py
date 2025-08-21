@@ -8,6 +8,7 @@ from typing import Optional
 import uvicorn
 import os
 import time
+import random
 
 app = FastAPI(
     title="YouTube Transcript API",
@@ -244,7 +245,7 @@ async def health_check():
 @app.get("/auth-status")
 async def auth_status():
     """Check authentication status and provide guidance"""
-    cookies_file = "cookies.txt"
+    cookies_file = "D:\Caption_n8n\YouTube-Transcript-Extractor-API\cookies.txt"
     if os.path.exists(cookies_file):
         try:
             with open(cookies_file, 'r') as f:
