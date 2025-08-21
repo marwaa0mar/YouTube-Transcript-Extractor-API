@@ -1,5 +1,5 @@
-fastapi
-uvicorn
-yt-dlp
-requests
-pydantic
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+yt-dlp>=2023.12.30
+requests>=2.31.0
+pydantic>=2.5.0

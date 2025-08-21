@@ -376,4 +376,13 @@ async def get_video_info_only(video_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)
+    import os
+    
+    # Get port from environment (Railway sets this) or use default
+    port = int(os.environ.get("PORT", 3000))
+    
+    # Use 0.0.0.0 for Railway, localhost for local development
+    host = "0.0.0.0" if os.environ.get("RAILWAY_ENVIRONMENT") else "127.0.0.1"
+    
+    print(f"Starting server on {host}:{port}")
+    uvicorn.run("main:app", host=host, port=port, reload=False)
