@@ -26,6 +26,44 @@ A FastAPI-based service that extracts transcripts from YouTube videos using yt-d
    GET /transcript/dQw4w9WgXcQ
    ```
 
+## 🌐 Run with ngrok (public URL)
+
+1. Install ngrok from `https://ngrok.com/download` and sign in to get an authtoken.
+2. Update `ngrok.yml` and set your `authtoken` value. Optional: remove the `subdomain` line if you are on the free plan.
+3. Start on Windows (choose one):
+   - CMD: double-click `start_with_ngrok.bat`
+   - PowerShell: right-click `start_with_ngrok.ps1` → Run with PowerShell
+
+The scripts will:
+- launch the API on `http://localhost:8000`
+- start ngrok using `ngrok.yml`
+- print the public URL (or you can open `http://127.0.0.1:4040/status` to copy it)
+
+## 🧪 Test in Postman
+
+Use the ngrok HTTPS URL from the script output, for example:
+
+```
+GET https://<your-ngrok-host>.ngrok-free.app/video-info/FuqNluMTIR8
+```
+
+Expected JSON includes `captions` with timestamps:
+
+```json
+{
+  "video_id": "FuqNluMTIR8",
+  "caption_type": "auto",
+  "captions": [
+    { "start": "00:01", "end": "00:03", "text": "Hello everyone" }
+  ],
+  "success": true
+}
+```
+
+### Notes
+- If ngrok shows an error about reserved subdomains on the free plan, remove the `subdomain:` line in `ngrok.yml` and re-run the script.
+- Ensure `cookies.txt` is valid to avoid YouTube auth challenges.
+
 ## 🔐 Authentication Issues
 
 If you get the error "Sign in to confirm you're not a bot", your cookies are expired or invalid.

@@ -1,8 +1,7 @@
 version: "2"
-authtoken: '31b5RqQ3HlQLsgWw3J87YxnIDh1_mfDi6rREp6kXX2hXnBqa'
+authtoken: '2wf3BO5M2QXfadRiq2PMQhxWtHY_4D3t4XZRpqsSmxPsMTNpn'
 tunnels:
   youtube-api:
     proto: http
     addr: 8000
-    subdomain: youtube-transcript-api
     inspect: true
