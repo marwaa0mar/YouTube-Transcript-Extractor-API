@@ -1,133 +1,190 @@
 # YouTube Transcript Extractor API
 
-A FastAPI-based service that extracts transcripts from YouTube videos using yt-dlp.
+A FastAPI-based service that extracts transcripts from YouTube videos with **timestamps** using yt-dlp. Includes both API endpoints and a GUI interface.
+
+## ✨ Features
+
+- 🎯 **Extract transcripts with timestamps** (mm:ss format)
+- 🌐 **REST API** for programmatic access
+- 🖥️ **GUI Interface** for easy manual extraction
+- 🔗 **ngrok integration** for public URL access
+- 🔐 **Cookie authentication** to avoid YouTube bot detection
+- 📊 **Video metadata** (title, duration, uploader, etc.)
+- 🎬 **Support for both manual and automatic captions**
+
+## 📁 Project Structure
+
+```
+YouTube-Transcript-Extractor-API/
+├── main.py                 # FastAPI server with timestamp extraction
+├── gui_interface.py        # GUI application for manual extraction
+├── generate_cookies.py     # Helper to extract YouTube cookies
+├── requirements.txt        # Python dependencies
+├── cookies.txt            # YouTube authentication cookies
+├── ngrok.yml              # ngrok configuration
+├── start_with_ngrok.bat   # Windows batch script to start API + ngrok
+├── start_with_ngrok.ps1   # PowerShell script to start API + ngrok
+├── run_gui.bat            # Windows batch script to launch GUI
+└── README.md              # This file
+```
 
 ## 🚀 Quick Start
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Generate fresh cookies (IMPORTANT!):**
-   ```bash
-   python generate_cookies.py
-   ```
-   
-   This will extract fresh YouTube cookies from your browser to avoid bot detection.
-
-3. **Run the API:**
-   ```bash
-   python main.py
-   ```
-
-4. **Test the API:**
-   ```
-   GET /transcript/dQw4w9WgXcQ
-   ```
-
-## 🌐 Run with ngrok (public URL)
-
-1. Install ngrok from `https://ngrok.com/download` and sign in to get an authtoken.
-2. Update `ngrok.yml` and set your `authtoken` value. Optional: remove the `subdomain` line if you are on the free plan.
-3. Start on Windows (choose one):
-   - CMD: double-click `start_with_ngrok.bat`
-   - PowerShell: right-click `start_with_ngrok.ps1` → Run with PowerShell
-
-The scripts will:
-- launch the API on `http://localhost:8000`
-- start ngrok using `ngrok.yml`
-- print the public URL (or you can open `http://127.0.0.1:4040/status` to copy it)
-
-## 🧪 Test in Postman
-
-Use the ngrok HTTPS URL from the script output, for example:
-
-```
-GET https://<your-ngrok-host>.ngrok-free.app/video-info/FuqNluMTIR8
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
 ```
 
-Expected JSON includes `captions` with timestamps:
-
-```json
-{
-  "video_id": "FuqNluMTIR8",
-  "caption_type": "auto",
-  "captions": [
-    { "start": "00:01", "end": "00:03", "text": "Hello everyone" }
-  ],
-  "success": true
-}
-```
-
-### Notes
-- If ngrok shows an error about reserved subdomains on the free plan, remove the `subdomain:` line in `ngrok.yml` and re-run the script.
-- Ensure `cookies.txt` is valid to avoid YouTube auth challenges.
-
-## 🔐 Authentication Issues
-
-If you get the error "Sign in to confirm you're not a bot", your cookies are expired or invalid.
-
-### Solution 1: Use the helper script (Recommended)
+### 2. Set Up Authentication (IMPORTANT!)
 ```bash
 python generate_cookies.py
 ```
+This extracts fresh YouTube cookies from your browser to avoid bot detection.
 
-### Solution 2: Manual cookie export
-1. Install browser extension: "Get cookies.txt LOCALLY" for Chrome/Firefox
-2. Go to YouTube and make sure you're logged in
-3. Use the extension to export cookies
-4. Save as `cookies.txt` in your project root
+### 3. Choose Your Interface
 
-### Solution 3: Command line with yt-dlp
+#### Option A: GUI Interface (Recommended for beginners)
 ```bash
-yt-dlp --cookies-from-browser chrome --cookies cookies.txt
+# Start the API server first
+python main.py
+
+# In a new terminal, launch the GUI
+python gui_interface.py
+# OR double-click run_gui.bat
 ```
+
+#### Option B: API Only
+```bash
+python main.py
+```
+Then use Postman or curl to test endpoints.
+
+#### Option C: Public URL with ngrok
+```bash
+# Double-click start_with_ngrok.bat
+# OR run start_with_ngrok.ps1 in PowerShell
+```
+
+## 🖥️ GUI Interface
+
+The GUI provides a user-friendly way to extract transcripts:
+
+1. **Launch**: Run `python gui_interface.py` or double-click `run_gui.bat`
+2. **Enter Video ID**: Paste a YouTube video ID (e.g., `FuqNluMTIR8`)
+3. **Click Extract**: See results with timestamps
+
+**Example Output:**
+```
+Video ID: FuqNluMTIR8
+Title: [Video Title]
+Duration: 120 seconds
+Uploader: [Channel Name]
+Caption Type: auto
+Success: True
+================================================================================
+
+[  1] 00:01 - 00:03: Hello everyone, welcome to this video
+
+[  2] 00:03 - 00:06: Today we're going to talk about...
+
+[  3] 00:06 - 00:09: Let's get started with the first topic
+```
+
+## 🌐 Public URL with ngrok
+
+### Setup
+1. **Install ngrok**: Download from https://ngrok.com/download
+2. **Configure**: Update `ngrok.yml` with your authtoken
+3. **Start**: Double-click `start_with_ngrok.bat`
+
+### Usage
+The script will print a public HTTPS URL like:
+```
+🌐 Public: https://abc123.ngrok-free.app
+```
+
+Use this URL in Postman or share with others.
 
 ## 📡 API Endpoints
 
-- `GET /` - API info and examples
-- `GET /transcript/{video_id}` - Extract transcript from YouTube video
-- `GET /health` - Health check
-- `GET /auth-status` - Check cookie authentication status
+| Endpoint | Description | Example |
+|----------|-------------|---------|
+| `GET /` | API info and examples | `http://localhost:8000/` |
+| `GET /video-info/{video_id}` | **Get video info + captions with timestamps** | `http://localhost:8000/video-info/FuqNluMTIR8` |
+| `GET /transcript/{video_id}` | Get plain transcript | `http://localhost:8000/transcript/FuqNluMTIR8` |
+| `GET /health` | Health check | `http://localhost:8000/health` |
+| `GET /auth-status` | Check cookie status | `http://localhost:8000/auth-status` |
+| `GET /test-youtube` | Test YouTube connectivity | `http://localhost:8000/test-youtube` |
 
-## 🎯 Example Usage
+## 🧪 Testing in Postman
 
-```bash
-# Get transcript for a video
-curl "http://localhost:8000/transcript/dQw4w9WgXcQ"
-
-# Check authentication status
-curl "http://localhost:8000/auth-status"
+### Local Testing
+```
+GET http://localhost:8000/video-info/FuqNluMTIR8
 ```
 
-## 🔧 Configuration
+### ngrok Testing
+```
+GET https://your-ngrok-url.ngrok-free.app/video-info/FuqNluMTIR8
+```
 
-The API automatically looks for `cookies.txt` in the project root. If found, it will use it for authentication.
+### Expected Response
+```json
+{
+  "video_id": "FuqNluMTIR8",
+  "video_url": "https://www.youtube.com/watch?v=FuqNluMTIR8",
+  "title": "Video Title",
+  "duration": 120,
+  "view_count": 1000,
+  "uploader": "Channel Name",
+  "upload_date": "20231201",
+  "description": "Video description...",
+  "has_captions": true,
+  "available_caption_languages": ["en"],
+  "caption_type": "auto",
+  "captions": [
+    {
+      "start": "00:01",
+      "end": "00:03", 
+      "start_ms": 1000,
+      "end_ms": 3000,
+      "text": "Hello everyone, welcome to this video"
+    }
+  ],
+  "success": true,
+  "message": "Video information extracted successfully"
+}
+```
 
-## 🚨 Common Issues
+## 🔐 Authentication Issues
 
-1. **"Sign in to confirm you're not a bot"**
-   - Your cookies are expired
-   - Run `python generate_cookies.py` to get fresh ones
+### Error: "Sign in to confirm you're not a bot"
+Your cookies are expired or invalid.
 
-2. **"No English captions available"**
-   - The video doesn't have English subtitles
-   - Try a different video
+**Solutions:**
+1. **Recommended**: Run `python generate_cookies.py`
+2. **Manual**: Export cookies from browser extension
+3. **Command line**: `yt-dlp --cookies-from-browser chrome --cookies cookies.txt`
 
-3. **Cookie format errors**
-   - Ensure cookies.txt is in Netscape format
-   - Use the helper script to generate proper format
+### Cookie Management
+- Cookies expire quickly (hours/days)
+- Must be logged into YouTube in browser
+- File must be named `cookies.txt` in project root
+- Use Netscape format (generated by helper script)
 
-## 📝 Notes
+## 🚨 Common Issues & Solutions
 
-- Cookies expire quickly (usually within hours/days)
-- You need to be logged into YouTube in your browser
-- The API includes browser-like headers to avoid detection
-- Supports both manual and automatic captions
+| Issue | Solution |
+|-------|----------|
+| "Sign in to confirm you're not a bot" | Run `python generate_cookies.py` |
+| "No English captions available" | Try a different video with captions |
+| "ngrok subdomain error" | Remove `subdomain:` line from `ngrok.yml` |
+| "API not responding" | Check if `python main.py` is running |
+| "GUI not connecting" | Ensure API server is running first |
 
 ## 🛠️ Development
 
+### Local Development
 ```bash
 # Run with auto-reload
 python main.py
@@ -136,10 +193,51 @@ python main.py
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+### File Paths
+- **API Server**: `http://localhost:8000` (default)
+- **ngrok Status**: `http://127.0.0.1:4040/status`
+- **Cookies File**: `./cookies.txt` (project root)
+- **GUI API URL**: Line 15 in `gui_interface.py` (change for ngrok)
+
 ## 📦 Dependencies
 
 - `fastapi` - Web framework
-- `uvicorn` - ASGI server
+- `uvicorn` - ASGI server  
 - `yt-dlp` - YouTube downloader
 - `requests` - HTTP client
 - `pydantic` - Data validation
+- `tkinter` - GUI framework (built-in)
+
+## 🎯 What's New
+
+### Version 1.0.2 Updates:
+- ✅ **Timestamp extraction** (mm:ss format)
+- ✅ **GUI interface** for easy manual use
+- ✅ **Enhanced API** with detailed video info
+- ✅ **ngrok integration** for public URLs
+- ✅ **Better error handling** and user feedback
+- ✅ **Cookie management** improvements
+
+## 📝 Notes
+
+- **No AI/ML**: This is a data extraction tool, not an AI application
+- **Captions required**: Videos must have captions/subtitles
+- **Browser headers**: Uses realistic browser headers to avoid detection
+- **Multiple formats**: Supports JSON3, SRV3, VTT, and TTML caption formats
+- **Threading**: GUI uses threading to prevent freezing during API calls
+
+## 🔗 Quick Commands
+
+```bash
+# Start everything (API + ngrok)
+start_with_ngrok.bat
+
+# Start GUI only
+run_gui.bat
+
+# Generate fresh cookies
+python generate_cookies.py
+
+# Test API health
+curl http://localhost:8000/health
+```
