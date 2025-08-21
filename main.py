@@ -24,6 +24,134 @@ class VideoResponse(BaseModel):
     message: Optional[str] = None
 
 
+def _format_ms_to_mmss(milliseconds: int) -> str:
+    """Convert milliseconds to mm:ss string."""
+    total_seconds = int(max(milliseconds, 0) // 1000)
+    minutes = total_seconds // 60
+    seconds = total_seconds % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def _parse_vtt_time_to_ms(time_str: str) -> int:
+    """Parse a VTT timestamp (hh:mm:ss.mmm or mm:ss.mmm) to milliseconds."""
+    # Support both hh:mm:ss.mmm and mm:ss.mmm
+    parts = time_str.split(":")
+    if len(parts) == 3:
+        hours = int(parts[0])
+        minutes = int(parts[1])
+        seconds = float(parts[2])
+    elif len(parts) == 2:
+        hours = 0
+        minutes = int(parts[0])
+        seconds = float(parts[1])
+    else:
+        return 0
+    return int(((hours * 60 + minutes) * 60 + seconds) * 1000)
+
+
+def _extract_captions_with_timestamps(info: dict) -> dict:
+    """Return captions with timestamps if available.
+
+    Returns dict: { 'captions': [ {start, end, start_ms, end_ms, text} ], 'caption_type': 'manual'|'auto'|None }
+    """
+    subtitles = info.get("subtitles", {})
+    auto_subs = info.get("automatic_captions", {})
+    caption_tracks = None
+    caption_type = None
+
+    if "en" in subtitles:
+        caption_tracks = subtitles["en"]
+        caption_type = "manual"
+    elif "en" in auto_subs:
+        caption_tracks = auto_subs["en"]
+        caption_type = "auto"
+
+    if not caption_tracks:
+        return {"captions": [], "caption_type": None}
+
+    # Prefer JSON-based tracks (json3/srv3), then fall back to VTT/TTML
+    chosen = next((c for c in caption_tracks if c.get("ext") in ("json3", "srv3")), None)
+    if not chosen:
+        chosen = next((c for c in caption_tracks if c.get("ext") in ("vtt", "ttml", "xml")), caption_tracks[0])
+
+    try:
+        resp = requests.get(chosen["url"])  # type: ignore[index]
+        if resp.status_code != 200:
+            return {"captions": [], "caption_type": caption_type}
+        # JSON captions
+        if chosen.get("ext") in ("json3", "srv3"):
+            try:
+                data = resp.json()
+            except Exception:
+                data = None
+            if not data:
+                return {"captions": [], "caption_type": caption_type}
+
+            results = []
+            for event in data.get("events", []):
+                start_ms = event.get("tStartMs")
+                duration_ms = event.get("dDurationMs")
+                if start_ms is None:
+                    continue
+                if duration_ms is None:
+                    duration_ms = 0
+                end_ms = start_ms + duration_ms
+                segments = event.get("segs", []) or []
+                text_parts = []
+                for seg in segments:
+                    piece = (seg.get("utf8") or "").replace("\n", " ").strip()
+                    if piece:
+                        text_parts.append(piece)
+                text = " ".join(text_parts).strip()
+                if not text:
+                    continue
+                results.append({
+                    "start_ms": int(start_ms),
+                    "end_ms": int(end_ms),
+                    "start": _format_ms_to_mmss(int(start_ms)),
+                    "end": _format_ms_to_mmss(int(end_ms)),
+                    "text": text
+                })
+            return {"captions": results, "caption_type": caption_type}
+
+        # VTT/TTML fallback (best-effort parsing)
+        text = resp.text
+        lines = text.splitlines()
+        results = []
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if "-->" in line:
+                # Example: 00:00:01.000 --> 00:00:03.000
+                try:
+                    parts = [p.strip() for p in line.split("-->")]
+                    start_ms = _parse_vtt_time_to_ms(parts[0])
+                    end_ms = _parse_vtt_time_to_ms(parts[1].split(" ")[0])
+                    i += 1
+                    text_lines = []
+                    while i < len(lines) and lines[i].strip() != "":
+                        payload = re.sub(r"<[^>]+>", "", lines[i]).strip()
+                        if payload and not payload.isdigit():
+                            text_lines.append(payload)
+                        i += 1
+                    text_joined = " ".join(text_lines).strip()
+                    if text_joined:
+                        results.append({
+                            "start_ms": int(start_ms),
+                            "end_ms": int(end_ms),
+                            "start": _format_ms_to_mmss(int(start_ms)),
+                            "end": _format_ms_to_mmss(int(end_ms)),
+                            "text": text_joined
+                        })
+                except Exception:
+                    pass
+            else:
+                i += 1
+        return {"captions": results, "caption_type": caption_type}
+    except Exception:
+        return {"captions": [], "caption_type": caption_type}
+
+
 def get_video_info_and_transcript(video_id: str):
     """Extract video info + English transcript if available"""
 
@@ -349,6 +477,7 @@ async def get_video_info_only(video_id: str):
             
             has_english_captions = "en" in subtitles or "en" in auto_subs
             caption_languages = list(set(list(subtitles.keys()) + list(auto_subs.keys())))
+            extracted = _extract_captions_with_timestamps(info)
             
             return {
                 "video_id": video_id,
@@ -361,6 +490,8 @@ async def get_video_info_only(video_id: str):
                 "description": info.get("description", "")[:500] + "..." if info.get("description") and len(info.get("description", "")) > 500 else info.get("description", ""),
                 "has_captions": has_english_captions,
                 "available_caption_languages": caption_languages,
+                "captions": extracted.get("captions", []),
+                "caption_type": extracted.get("caption_type"),
                 "success": True,
                 "message": "Video information extracted successfully"
             }
