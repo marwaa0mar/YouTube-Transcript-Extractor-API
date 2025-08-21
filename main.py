@@ -52,7 +52,7 @@ def _parse_vtt_time_to_ms(time_str: str) -> int:
 def _extract_captions_with_timestamps(info: dict) -> dict:
     """Return captions with timestamps if available.
 
-    Returns dict: { 'captions': [ {start, end, start_ms, end_ms, text} ], 'caption_type': 'manual'|'auto'|None }
+    Returns dict: { 'captions': [ {start, end, text} ], 'caption_type': 'manual'|'auto'|None }
     """
     subtitles = info.get("subtitles", {})
     auto_subs = info.get("automatic_captions", {})
@@ -106,8 +106,6 @@ def _extract_captions_with_timestamps(info: dict) -> dict:
                 if not text:
                     continue
                 results.append({
-                    "start_ms": int(start_ms),
-                    "end_ms": int(end_ms),
                     "start": _format_ms_to_mmss(int(start_ms)),
                     "end": _format_ms_to_mmss(int(end_ms)),
                     "text": text
@@ -137,8 +135,6 @@ def _extract_captions_with_timestamps(info: dict) -> dict:
                     text_joined = " ".join(text_lines).strip()
                     if text_joined:
                         results.append({
-                            "start_ms": int(start_ms),
-                            "end_ms": int(end_ms),
                             "start": _format_ms_to_mmss(int(start_ms)),
                             "end": _format_ms_to_mmss(int(end_ms)),
                             "text": text_joined
