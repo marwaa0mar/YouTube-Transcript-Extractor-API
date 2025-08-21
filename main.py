@@ -379,7 +379,7 @@ if __name__ == "__main__":
     import os
     
     # Get port from environment (Railway sets this) or use default
-    port = int(os.environ.get("PORT", 3000))
+    port = int(os.environ.get("PORT", 8000))
     
     # Use 0.0.0.0 for Railway, localhost for local development
     host = "0.0.0.0" if os.environ.get("RAILWAY_ENVIRONMENT") else "127.0.0.1"
