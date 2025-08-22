@@ -13,12 +13,14 @@ document.getElementById('submitBtn').addEventListener('click', async function() 
     responseOutput.textContent = '';
 
     try {
-        const response = await fetch(`https://0bdcc47e4e39.ngrok-free.app/transcript/dQw4w9WgXcQ`, {
-            method: 'POST',
+        // Send input as query parameter
+        const url = `https://0bdcc47e4e39.ngrok-free.app/app-info/dQw4w9WgXcQ?query=${encodeURIComponent(input)}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ query: input })
+            }
         });
 
         if (!response.ok) {

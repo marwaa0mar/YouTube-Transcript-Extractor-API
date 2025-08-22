@@ -9,11 +9,18 @@ import uvicorn
 import os
 import time
 import random
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="YouTube Transcript API",
     description="Extract video info and transcripts from YouTube videos",
     version="1.0.2"
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:8000"] for local testing
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 class VideoResponse(BaseModel):
