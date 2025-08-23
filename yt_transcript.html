@@ -173,7 +173,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'https://eeaa58ac81d5.ngrok-free.app/video-info/';
+        const API_BASE_URL = 'https://3c1379470c71.ngrok-free.app/video-info/';
         
         const videoIdInput = document.getElementById('videoIdInput');
         const fetchButton = document.getElementById('fetchButton');
@@ -251,7 +251,7 @@
 
             let transcriptHtml = '<div class="transcript-container">';
             
-            data.transcript.forEach((item, index) => {
+            data.captions.forEach((item, index) => {
                 const text = item.text || 'No text available';
                 const startTime = formatTime(item.start);
                 const endTime = formatTime(item.end);
