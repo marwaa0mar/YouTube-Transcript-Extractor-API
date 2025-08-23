@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Transcript Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .input-section {
+            padding: 30px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        #videoIdInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #videoIdInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #fetchButton {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        #fetchButton:hover {
+            transform: translateY(-2px);
+        }
+
+        #fetchButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 6px;
+            border: 1px solid #fcc;
+        }
+
+        .transcript-container {
+            padding: 30px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .transcript-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .transcript-text {
+            color: black;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .timestamp {
+            color: #2563eb;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Video Transcript Viewer</h1>
+            <p>Enter a video ID to fetch and view transcripts</p>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input type="text" id="videoIdInput" placeholder="Enter video ID..." />
+                <button id="fetchButton">Get Transcript</button>
+            </div>
+        </div>
+
+        <div id="content">
+            <div class="no-data">
+                Enter a video ID above to get started
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://eeaa58ac81d5.ngrok-free.app/video-info/';
+        
+        const videoIdInput = document.getElementById('videoIdInput');
+        const fetchButton = document.getElementById('fetchButton');
+        const content = document.getElementById('content');
+
+        // Add event listeners
+        fetchButton.addEventListener('click', fetchTranscript);
+        videoIdInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fetchTranscript();
+            }
+        });
+
+        async function fetchTranscript() {
+            const videoId = videoIdInput.value.trim();
+            
+            if (!videoId) {
+                showError('Please enter a video ID');
+                return;
+            }
+
+            // Show loading state
+            showLoading();
+            fetchButton.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${videoId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayTranscript(data);
+
+            } catch (error) {
+                console.error('Error fetching transcript:', error);
+                showError('Failed to fetch transcript. Please check the video ID and try again.');
+            } finally {
+                fetchButton.disabled = false;
+            }
+        }
+
+        function showLoading() {
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Fetching transcript...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            content.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+
+        function displayTranscript(data) {
+            if (!data || !data.transcript || data.transcript.length === 0) {
+                content.innerHTML = `
+                    <div class="no-data">
+                        No transcript data available for this video ID
+                    </div>
+                `;
+                return;
+            }
+
+            let transcriptHtml = '<div class="transcript-container">';
+            
+            data.transcript.forEach((item, index) => {
+                const text = item.text || 'No text available';
+                const startTime = formatTime(item.start);
+                const endTime = formatTime(item.end);
+                
+                transcriptHtml += `
+                    <div class="transcript-item">
+                        <div class="transcript-text">${escapeHtml(text)}</div>
+                        <div class="timestamp">
+                            ${startTime} - ${endTime}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            transcriptHtml += '</div>';
+            content.innerHTML = transcriptHtml;
+        }
+
+        function formatTime(seconds) {
+            if (seconds === undefined || seconds === null) return '00:00';
+            
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
