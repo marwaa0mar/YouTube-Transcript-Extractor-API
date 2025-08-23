@@ -240,7 +240,7 @@
         }
 
         function displayTranscript(data) {
-            if (!data || !data.transcript || data.transcript.length === 0) {
+            if (!data || !data.captions || data.captions.length === 0) {
                 content.innerHTML = `
                     <div class="no-data">
                         No transcript data available for this video ID
