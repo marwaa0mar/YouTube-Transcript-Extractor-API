@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Transcript Viewer</title>
+    <title>YouTube Video Info & Transcript Viewer</title>
     <style>
         * {
             margin: 0;
@@ -18,7 +18,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
@@ -116,6 +116,54 @@
             border: 1px solid #fcc;
         }
 
+        .success {
+            background: #efe;
+            color: #363;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 6px;
+            border: 1px solid #cfc;
+        }
+
+        .video-info {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .video-info h2 {
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #333;
+            font-size: 16px;
+            word-break: break-word;
+        }
+
         .transcript-container {
             padding: 30px;
             max-height: 600px;
@@ -149,19 +197,60 @@
             padding: 40px;
             font-style: italic;
         }
+
+        .caption-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .caption-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .caption-unavailable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .raw-data {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .raw-data h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .raw-data pre {
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Video Transcript Viewer</h1>
-            <p>Enter a video ID to fetch and view transcripts</p>
+            <h1>YouTube Video Info & Transcript Viewer</h1>
+            <p>Enter a video ID to fetch video information and transcripts</p>
         </div>
 
         <div class="input-section">
             <div class="input-group">
-                <input type="text" id="videoIdInput" placeholder="Enter video ID..." />
-                <button id="fetchButton">Get Transcript</button>
+                <input type="text" id="videoIdInput" placeholder="Enter video ID (e.g., dQw4w9WgXcQ)..." />
+                <button id="fetchButton">Get Video Info</button>
             </div>
         </div>
 
@@ -173,21 +262,22 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'https://7cfb8ed58e0d.ngrok-free.app/video-info/';
+        // Use Vercel API server - this will be updated after deployment
+        const API_BASE_URL = window.location.origin + '/api/video-info/';
         
         const videoIdInput = document.getElementById('videoIdInput');
         const fetchButton = document.getElementById('fetchButton');
         const content = document.getElementById('content');
 
         // Add event listeners
-        fetchButton.addEventListener('click', fetchTranscript);
+        fetchButton.addEventListener('click', fetchVideoInfo);
         videoIdInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                fetchTranscript();
+                fetchVideoInfo();
             }
         });
 
-        async function fetchTranscript() {
+        async function fetchVideoInfo() {
             const videoId = videoIdInput.value.trim();
             
             if (!videoId) {
@@ -212,11 +302,11 @@
                 }
 
                 const data = await response.json();
-                displayTranscript(data);
+                displayVideoInfo(data);
 
             } catch (error) {
-                console.error('Error fetching transcript:', error);
-                showError('Failed to fetch transcript. Please check the video ID and try again.');
+                console.error('Error fetching video info:', error);
+                showError(`Failed to fetch video info. Error: ${error.message}. Make sure your API server is running on ${API_BASE_URL}`);
             } finally {
                 fetchButton.disabled = false;
             }
@@ -226,7 +316,7 @@
             content.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
-                    <p>Fetching transcript...</p>
+                    <p>Fetching video information...</p>
                 </div>
             `;
         }
@@ -239,43 +329,149 @@
             `;
         }
 
-        function displayTranscript(data) {
-            if (!data || !data.captions || data.captions.length === 0) {
+        function displayVideoInfo(data) {
+            if (!data) {
                 content.innerHTML = `
                     <div class="no-data">
-                        No transcript data available for this video ID
+                        No data received from API
                     </div>
                 `;
                 return;
             }
 
-            let transcriptHtml = '<div class="transcript-container">';
-            
-            data.captions.forEach((item, index) => {
-                const text = item.text || 'No text available';
-                const startTime = formatTime(item.start);
-                const endTime = formatTime(item.end);
-                
-                transcriptHtml += `
-                    <div class="transcript-item">
-                        <div class="transcript-text">${escapeHtml(text)}</div>
-                        <div class="timestamp">
-                            ${startTime} - ${endTime}
-                        </div>
+            let html = '';
+
+            // Show success/error message
+            if (data.success) {
+                html += `
+                    <div class="success">
+                        <strong>Success:</strong> ${data.message || 'Video information retrieved successfully'}
                     </div>
                 `;
-            });
+            } else {
+                html += `
+                    <div class="error">
+                        <strong>Error:</strong> ${data.message || 'Failed to retrieve video information'}
+                    </div>
+                `;
+            }
+
+            // Video Information Section
+            html += `
+                <div class="video-info">
+                    <h2>Video Information</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Video ID</div>
+                            <div class="info-value">${data.video_id || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Title</div>
+                            <div class="info-value">${data.title || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Uploader</div>
+                            <div class="info-value">${data.uploader || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Duration</div>
+                            <div class="info-value">${formatDuration(data.duration)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">View Count</div>
+                            <div class="info-value">${formatNumber(data.view_count)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Upload Date</div>
+                            <div class="info-value">${formatDate(data.upload_date)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Has Captions</div>
+                            <div class="info-value">
+                                <span class="caption-status ${data.has_captions ? 'caption-available' : 'caption-unavailable'}">
+                                    ${data.has_captions ? 'Available' : 'Not Available'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Caption Type</div>
+                            <div class="info-value">${data.caption_type || 'N/A'}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Available Languages</div>
+                            <div class="info-value">${data.available_caption_languages ? data.available_caption_languages.join(', ') : 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-label">Description</div>
+                        <div class="info-value">${data.description || 'No description available'}</div>
+                    </div>
+                </div>
+            `;
+
+            // Transcript Section
+            if (data.captions && data.captions.length > 0) {
+                html += `
+                    <div class="transcript-container">
+                        <h2>Transcript (${data.captions.length} segments)</h2>
+                `;
+                
+                data.captions.forEach((item, index) => {
+                    const text = item.text || 'No text available';
+                    const startTime = item.start || '00:00';
+                    const endTime = item.end || '00:00';
+                    
+                    html += `
+                        <div class="transcript-item">
+                            <div class="transcript-text">${escapeHtml(text)}</div>
+                            <div class="timestamp">
+                                ${startTime} - ${endTime}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            } else {
+                html += `
+                    <div class="no-data">
+                        <h2>Transcript</h2>
+                        <p>No transcript available for this video</p>
+                    </div>
+                `;
+            }
+
             
-            transcriptHtml += '</div>';
-            content.innerHTML = transcriptHtml;
+
+            content.innerHTML = html;
         }
 
-        function formatTime(seconds) {
-            if (seconds === undefined || seconds === null) return '00:00';
+        function formatDuration(seconds) {
+            if (!seconds) return 'N/A';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
             
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function formatNumber(num) {
+            if (!num) return 'N/A';
+            return num.toLocaleString();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            // Convert YYYYMMDD to readable format
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return `${year}-${month}-${day}`;
         }
 
         function escapeHtml(unsafe) {
