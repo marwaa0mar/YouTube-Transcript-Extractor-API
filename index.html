@@ -416,22 +416,22 @@
                     <div class="transcript-container">
                         <h2>Transcript (${data.captions.length} segments)</h2>
                 `;
-                
-                data.captions.forEach((item, index) => {
-                    const text = item.text || 'No text available';
+            
+            data.captions.forEach((item, index) => {
+                const text = item.text || 'No text available';
                     const startTime = item.start || '00:00';
                     const endTime = item.end || '00:00';
-                    
-                    html += `
-                        <div class="transcript-item">
-                            <div class="transcript-text">${escapeHtml(text)}</div>
-                            <div class="timestamp">
-                                ${startTime} - ${endTime}
-                            </div>
-                        </div>
-                    `;
-                });
                 
+                    html += `
+                    <div class="transcript-item">
+                        <div class="transcript-text">${escapeHtml(text)}</div>
+                        <div class="timestamp">
+                            ${startTime} - ${endTime}
+                        </div>
+                    </div>
+                `;
+            });
+            
                 html += '</div>';
             } else {
                 html += `
